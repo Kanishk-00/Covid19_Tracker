@@ -1,138 +1,205 @@
 import React, { useState, useEffect } from "react";
-import "./App.css";
 import {
-  MenuItem,
   FormControl,
   Select,
+  MenuItem,
   Card,
   CardContent,
 } from "@material-ui/core";
-import InfoBox from "./InfoBox";
-import LineGraph from "./LineGraph";
-import Table from "./Table";
-import { sortData, prettyPrintStat } from "./util";
-import numeral from "numeral";
-import Map from "./Map";
+import styled, { ThemeProvider, createGlobalStyle, withTheme } from "styled-components";
+import "./App.css";
+import InfoBox from "./components/InfoBox";
+import Map from "./components/Map";
+import Table from "./components/Table";
+import { prettyPrintStat, sortData } from "./utils";
+import LineGraph from "./components/LineGraph";
 import "leaflet/dist/leaflet.css";
+import { theme } from "./theme";
 
-const App = () => {
-  const [country, setInputCountry] = useState("worldwide");
-  const [countryInfo, setCountryInfo] = useState({});
+const GlobalCSS = createGlobalStyle`
+  body {
+      background-color: ${props=>props.theme.appBackground};
+  }
+`;
+
+function App(props) {
   const [countries, setCountries] = useState([]);
-  const [mapCountries, setMapCountries] = useState([]);
+  const [country, setCountry] = useState("worldwide");
+  const [countryInfo, setCountryInfo] = useState({});
   const [tableData, setTableData] = useState([]);
-  const [casesType, setCasesType] = useState("cases");
   const [mapCenter, setMapCenter] = useState({ lat: 34.80746, lng: -40.4796 });
   const [mapZoom, setMapZoom] = useState(3);
+  const [mapCountries, setMapCountries] = useState([]);
+  const [casesType, setCasesType] = useState("cases");
+  const [themeColor, setThemeColor] = useState("dark");
+  const [selectedTheme, setTheme] = useState(theme[themeColor]);
 
   useEffect(() => {
     fetch("https://disease.sh/v3/covid-19/all")
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then((data) => {
         setCountryInfo(data);
       });
   }, []);
 
   useEffect(() => {
-    const getCountriesData = async () => {
-      fetch("https://disease.sh/v3/covid-19/countries")
-        .then((response) => response.json())
+    const getCountries = async () => {
+      await fetch("https://disease.sh/v3/covid-19/countries")
+        .then((res) => res.json())
         .then((data) => {
           const countries = data.map((country) => ({
-            name: country.country,
-            value: country.countryInfo.iso2,
+            name: country.country, // E.g: India
+            value: country.countryInfo.iso2, // E.g: IND
           }));
+
           let sortedData = sortData(data);
-          setCountries(countries);
-          setMapCountries(data);
           setTableData(sortedData);
+          setMapCountries(data);
+          setCountries(countries);
         });
     };
 
-    getCountriesData();
+    getCountries();
   }, []);
 
-  console.log(casesType);
-
-  const onCountryChange = async (e) => {
-    const countryCode = e.target.value;
+  const onCountryChange = async (event) => {
+    const countryCode = event.target.value;
+    // console.log(countryCode);
 
     const url =
-      countryCode == "worldwide"
+      countryCode === "worldwide"
         ? "https://disease.sh/v3/covid-19/all"
         : `https://disease.sh/v3/covid-19/countries/${countryCode}`;
+
     await fetch(url)
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then((data) => {
-        setInputCountry(countryCode);
+        setCountry(countryCode);
         setCountryInfo(data);
+
         setMapCenter([data.countryInfo.lat, data.countryInfo.long]);
         setMapZoom(4);
       });
   };
 
+  // console.log(casesType, selectedTheme);
   return (
-    <div className="app">
-      <div className="app__left">
-        <div className="app__header">
-          <h1>COVID-19 Tracker</h1>
-          <FormControl className="app__dropdown">
-            <Select
-              variant="outlined"
-              value={country}
-              onChange={onCountryChange}
+    <ThemeProvider theme={selectedTheme}>
+      <GlobalCSS />
+      <div
+        className="app"
+        style={{ backgroundColor: selectedTheme.appBackground }}
+      >
+        {/* Header */}
+        <div className="app_left">
+          <div className="app_header">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+              }}
             >
-              <MenuItem value="worldwide">Worldwide</MenuItem>
-              {countries.map((country) => (
-                <MenuItem value={country.value}>{country.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </div>
-        <div className="app__stats">
-          <InfoBox
-            onClick={(e) => setCasesType("cases")}
-            title="Coronavirus Cases"
-            isRed
-            active={casesType === "cases"}
-            cases={prettyPrintStat(countryInfo.todayCases)}
-            total={numeral(countryInfo.cases).format("0.0a")}
-          />
-          <InfoBox
-            onClick={(e) => setCasesType("recovered")}
-            title="Recovered"
-            active={casesType === "recovered"}
-            cases={prettyPrintStat(countryInfo.todayRecovered)}
-            total={numeral(countryInfo.recovered).format("0.0a")}
-          />
-          <InfoBox
-            onClick={(e) => setCasesType("deaths")}
-            title="Deaths"
-            isRed
-            active={casesType === "deaths"}
-            cases={prettyPrintStat(countryInfo.todayDeaths)}
-            total={numeral(countryInfo.deaths).format("0.0a")}
-          />
-        </div>
-        <Map
-          countries={mapCountries}
-          casesType={casesType}
-          center={mapCenter}
-          zoom={mapZoom}
-        />
-      </div>
-      <Card className="app__right">
-        <CardContent>
-          <div className="app__information">
-            <h3>Live Cases by Country</h3>
-            <Table countries={tableData} />
-            <h3>Worldwide new {casesType}</h3>
-            <LineGraph casesType={casesType} />
+              <h1 style={{ color: selectedTheme.primaryText, marginRight: 10 }}>
+                Covid 19 Tracker
+              </h1>
+              <FormControl className="app_dropdown" style={{backgroundColor: selectedTheme.cardBackground}}>
+                <Select
+                  variant="outlined"
+                  value={themeColor}
+                  classes={{
+                    icon: {
+                      // color: `${selectedTheme.primaryText} !important`
+                    }
+                  }}
+                  style={{
+                    color: selectedTheme.primaryText
+                  }}
+                  onChange={(e) => {
+                    setThemeColor(e.target.value);
+                    setTheme(theme[e.target.value]);
+                  }}
+                >
+                  {["dark", "light"].map((theme) => (
+                    <MenuItem value={theme}>{theme.toUpperCase()}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </div>
+            <div>
+            <FormControl className="app_dropdown" style={{backgroundColor: selectedTheme.cardBackground}}>
+                <Select
+                  variant="outlined"
+                  value={country}
+                  style={{
+                    color: selectedTheme.primaryText
+                  }}
+                  onChange={onCountryChange}
+                >
+                  <MenuItem value="worldwide">Worldwide</MenuItem>
+                  {countries.map((country) => (
+                    <MenuItem value={country.value}>{country.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
 
-export default App;
+          {/* Title and Select input dropdown field */}
+
+          <div className="app_stats">
+            <InfoBox
+              isBlue
+              theme={theme[themeColor]}
+              active={casesType === "cases"}
+              onClick={(e) => setCasesType("cases")}
+              title="Cases"
+              cases={prettyPrintStat(countryInfo.todayCases)}
+              total={prettyPrintStat(countryInfo.cases)}
+            />
+            <InfoBox
+              isGreen
+              theme={theme[themeColor]}
+              active={casesType === "recovered"}
+              onClick={(e) => setCasesType("recovered")}
+              title="Recovered"
+              cases={prettyPrintStat(countryInfo.todayRecovered)}
+              total={prettyPrintStat(countryInfo.recovered)}
+            />
+            <InfoBox
+              isRed
+              theme={theme[themeColor]}
+              active={casesType === "deaths"}
+              onClick={(e) => setCasesType("deaths")}
+              title="Deaths"
+              cases={prettyPrintStat(countryInfo.todayDeaths)}
+              total={prettyPrintStat(countryInfo.deaths)}
+            />
+          </div>
+
+          {/* Map */}
+          <Map
+            themeColor={themeColor}
+            // theme={theme[themeColor]}
+            countries={mapCountries}
+            casesType={casesType}
+            center={mapCenter}
+            zoom={mapZoom}
+          />
+        </div>
+        <Card className="app_right" style={{backgroundColor: selectedTheme.cardBackground }}>
+          <CardContent style={{backgroundColor: selectedTheme.cardBackground}}>
+            <h3 style={{ color: selectedTheme.primaryText }}>Live cases by Country</h3>
+            <Table countries={tableData} theme={theme[themeColor]} />
+            <h3 style={{ color: selectedTheme.primaryText, marginTop: 40, marginBottom: 20 }}>
+              Worldwide new {casesType}
+            </h3>
+            <LineGraph casesType={casesType} theme={theme[themeColor]} />
+          </CardContent>
+        </Card>
+      </div>
+    </ThemeProvider>
+  );
+}
+
+export default withTheme(App);

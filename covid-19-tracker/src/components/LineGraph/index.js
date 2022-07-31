@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import numeral from "numeral";
+import { casesTypeColors } from "../../utils";
 
 const options = {
   legend: {
@@ -28,6 +29,10 @@ const options = {
         time: {
           format: "MM/DD/YY",
           tooltipFormat: "ll",
+          color: '#999'
+        },
+        ticks: {
+          fontColor: "#999",
         },
       },
     ],
@@ -37,7 +42,7 @@ const options = {
           display: false,
         },
         ticks: {
-          // Include a dollar sign in the ticks
+          fontColor: "#999",
           callback: function (value, index, values) {
             return numeral(value).format("0a");
           },
@@ -47,56 +52,52 @@ const options = {
   },
 };
 
-const buildChartData = (data, casesType) => {
-  let chartData = [];
-  let lastDataPoint;
-  for (let date in data.cases) {
-    if (lastDataPoint) {
-      let newDataPoint = {
-        x: date,
-        y: data[casesType][date] - lastDataPoint,
-      };
-      chartData.push(newDataPoint);
-    }
-    lastDataPoint = data[casesType][date];
-  }
-  return chartData;
-};
-
-function LineGraph({ casesType }) {
+function LineGraph({ casesType = "cases" }) {
   const [data, setData] = useState({});
 
+  const buildChartData = (data, casesType) => {
+    const chartData = [];
+    let lastDataPoint;
+    for (let date in data.cases) {
+      if (lastDataPoint) {
+        const newDataPoint = {
+          x: date,
+          y: data[casesType][date] - lastDataPoint,
+        };
+        chartData.push(newDataPoint);
+      }
+      lastDataPoint = data[casesType][date];
+    }
+    return chartData;
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      await fetch("https://disease.sh/v3/covid-19/historical/all")
-        .then((response) => {
-          return response.json();
-        })
+    const getChartData = async () => {
+      await fetch("https://disease.sh/v3/covid-19/historical/all?lastdays=120")
+        .then((res) => res.json())
         .then((data) => {
           let chartData = buildChartData(data, casesType);
+          // console.log("-------data-----",chartData);
           setData(chartData);
-          console.log(chartData);
-          // buildChart(chartData);
         });
     };
-
-    fetchData();
+    getChartData();
   }, [casesType]);
 
   return (
     <div>
       {data?.length > 0 && (
         <Line
+          options={options}
           data={{
             datasets: [
               {
-                backgroundColor: "rgba(204, 16, 52, 0.5)",
-                borderColor: "#CC1034",
                 data: data,
+                backgroundColor: casesTypeColors[casesType].rgb,
+                borderColor: casesTypeColors[casesType].half_op,
               },
             ],
           }}
-          options={options}
         />
       )}
     </div>

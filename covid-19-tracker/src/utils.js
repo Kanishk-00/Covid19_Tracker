@@ -1,43 +1,39 @@
 import React from "react";
-import numeral from "numeral";
 import { Circle, Popup } from "react-leaflet";
+import numeral from 'numeral'
+import './components/Map/Map.css'
 
-const casesTypeColors = {
+export const casesTypeColors = {
   cases: {
-    hex: "#CC1034",
-    rgb: "rgb(204, 16, 52)",
-    // half_op: "rgba(204, 16, 52, 0.5)",
-    multiplier: 300,
+    hex: "#4e89ae",
+    rgb: "rgb(78,137,174)",
+    half_op: "rgba(78,137,174, 0.5)",
+    multiplier: 800,
   },
   recovered: {
-    hex: "#7dd71d",
-    rgb: "rgb(125, 215, 29)",
-    // half_op: "rgba(125, 215, 29, 0.5)",
-    multiplier: 200,
+    hex: "#68b0ab",
+    rgb: "rgb(104,176,171)",
+    half_op: "rgba(104,176,171, 0.5)",
+    multiplier: 1200,
   },
   deaths: {
-    hex: "#fb4443",
-    rgb: "rgb(251, 68, 67)",
-    // half_op: "rgba(251, 68, 67, 0.5)",
+    hex: "#ff414d",
+    rgb: "rgb(255,65,77)",
+    half_op: "rgba(255,65,77,0.5)",
     multiplier: 2000,
   },
 };
 
 export const sortData = (data) => {
-  let sortedData = [...data];
-  sortedData.sort((a, b) => {
-    if (a.cases > b.cases) {
-      return -1;
-    } else {
-      return 1;
-    }
-  });
+  const sortedData = [...data];
+  sortedData.sort((a, b) => b.cases - a.cases);
   return sortedData;
 };
 
 export const prettyPrintStat = (stat) =>
   stat ? `+${numeral(stat).format("0.0a")}` : "+0";
 
+// Draw circles on the map with interactive tooltip
 export const showDataOnMap = (data, casesType = "cases") =>
   data.map((country) => (
     <Circle
@@ -51,10 +47,10 @@ export const showDataOnMap = (data, casesType = "cases") =>
     >
       <Popup>
         <div className="info-container">
-          <div
+          <img
             className="info-flag"
-            style={{ backgroundImage: `url(${country.countryInfo.flag})` }}
-          ></div>
+            src={country.countryInfo.flag}
+          />
           <div className="info-name">{country.country}</div>
           <div className="info-confirmed">
             Cases: {numeral(country.cases).format("0,0")}
